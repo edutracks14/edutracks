@@ -112,8 +112,7 @@ function checkStatement(role, stmt) {
   const mentionsSettings = /\bsettings\b/i.test(sql);
   const mentionsPinKey = /_pin\b|\badmin_name\b/i.test(sql) || argValues(stmt).some((v) => PIN_KEY.test(v));
   // Reading the pin column is refused for roles that must not see teacher PINs (schema statements that merely define it are fine).
-  // Teachers may read everything (the result scrubber blanks PIN columns/values).
-  if (role === "teacher" && (op === "SELECT" || (op === "WITH" && !/\b(insert|update|delete|replace)\b/i.test(sql)))) return null;
+  // Teachers are now treated like every other non-admin role: no shortcut, same checks.
   if (HIDE_TEACHER_PINS.has(role) && (op === "SELECT" || op === "WITH") && /\bpin\b/i.test(sql)) return "Not allowed.";
 
   let writeTable = null;
@@ -146,24 +145,22 @@ function checkStatement(role, stmt) {
 
   if (isWrite) {
     if (!writeTable) return "Not allowed.";
+    // Block copying secrets into a readable table (INSERT ... SELECT / UPDATE ... (SELECT ...)).
+    if (/\bselect\b/i.test(sql) && (/\bsettings\b/i.test(sql) || /\bpin\b/i.test(sql) || /\bteachers\b/i.test(sql))) return "Not allowed.";
     if ((WRITE_DENY[role] || CORE_TABLES).map((x) => x.toLowerCase()).includes(writeTable.toLowerCase())) {
       return "Your role cannot change this data.";
     }
     if (writeTable.toLowerCase() === "settings" && mentionsPinKey) return "Only the admin can change PINs.";
   }
-  // Teacher dashboards hydrate from the same read-only cloud tables as Admin.
-  // Do not reject those SELECTs because they mention a protected table; the
-  // result scrubber below still removes PINs and protected setting values.
-  if (!isWrite && (op === "SELECT" || op === "WITH") && role === "teacher") {
-    return null;
-  }
   if (!isWrite && mentionsSettings && op !== "CREATE") {
-    // Reading settings is allowed, but only in simple shapes the server can safely scrub.
-    const stripped = sql.replace(/\bin\s*\([^)]*\)/gi, " ");
-    if (/\bas\b|\bjoin\b|\bunion\b|\|\||[()]/i.test(stripped) || (sql.match(/\bselect\b/gi) || []).length > 1) {
-      return "Not allowed.";
-    }
+    // Settings may only be read in these exact shapes (nothing the scrubber could miss):
+    //   SELECT *|key|value|key,value FROM settings [WHERE key = ? | key = 'x' | key IN (...)]
+    // No value filters or ordering (they would let a user guess a PIN one character at a time).
+    const shape = /^select\s+(?:\*|key|value|key\s*,\s*value|value\s*,\s*key)\s+from\s+[`"\[]?(?:main\s*\.\s*)?[`"\[]?settings[`"\]]?(?:\s+where\s+key\s*(?:=\s*(?:\?|'[^']*')|in\s*\([^()]*\)))?\s*;?$/i;
+    if (!shape.test(sql)) return "Not allowed.";
   }
+  // CREATE TABLE ... AS SELECT could copy settings/PINs into a table the user can then read.
+  if (op === "CREATE" && /\bas\s+select\b/i.test(sql)) return "Not allowed.";
   return null;
 }
 
@@ -176,12 +173,13 @@ function scrubResult(role, result) {
   const pinIdx = names.indexOf("pin");
   const blank = { type: "text", value: "" };
   for (const row of result.rows) {
-    if (keyIdx >= 0 && valIdx >= 0 && PIN_KEY.test(String(row[keyIdx]?.value ?? ""))) row[valIdx] = blank;
+    if (keyIdx >= 0 && valIdx >= 0 && PIN_KEY.test(String(row[keyIdx]?.value ?? ""))) names.forEach((n, i) => { if (n === "value") row[i] = blank; });
     if (pinIdx >= 0 && HIDE_TEACHER_PINS.has(role) && row[pinIdx] && row[pinIdx].type !== "null") row[pinIdx] = blank;
   }
-  // A settings read that does not return the key column cannot be scrubbed: blank the values.
-  if (valIdx >= 0 && keyIdx < 0 && names.length === 1) {
-    for (const row of result.rows) row[valIdx] = blank;
+  // A settings read that does not return the key column cannot be scrubbed: blank every value column.
+  if (valIdx >= 0 && keyIdx < 0) {
+    const valCols = names.map((n, i) => (n === "value" ? i : -1)).filter((i) => i >= 0);
+    for (const row of result.rows) for (const i of valCols) row[i] = blank;
   }
 }
 
@@ -258,6 +256,7 @@ export default async function handler(request) {
         for (const r of data.results || []) {
           if (r.type === "ok") scrubResult(role, r.response && r.response.result);
         }
+        if (skipped.length) data.skipped = skipped;
         outText = JSON.stringify(data);
       } catch {
         return jsonResponse({ error: "Unexpected database response" }, 502, cors);
