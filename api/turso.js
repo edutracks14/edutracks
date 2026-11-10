@@ -88,7 +88,7 @@ const CORE_TABLES = ["teachers", "students", "classes", "subjects", "marks", "te
 const WRITE_DENY = {
   admin: [],
   deputy: [],
-  data_clerk: ["subjects", "teachers", "teacher_subjects", "teacher_classes", "class_tutors", "commitments", "student_commitments", "student_groups", "settings"],
+  data_clerk: ["subjects", "students", "classes", "class_history", "teachers", "teacher_subjects", "teacher_classes", "class_tutors", "commitments", "student_commitments", "student_groups", "settings"],
   teacher: ["teachers", "students", "classes", "subjects", "teacher_subjects", "teacher_classes", "class_tutors", "class_history", "settings"],
   head_teacher: CORE_TABLES,
 };
