@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light">
+<title>EduTrackS</title>
+<link rel="preload" href="sql-wasm.js" as="script">
+<link rel="preload" href="chart.umd.min.js" as="script">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b2352">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EduTrackS">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{--navy:#0b2352;--blue:#1d4ed8;--blue2:#1e40af;--gold:#facc15;--ink:#1e293b;--muted:#64748b}
+  html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink)}
+  body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:linear-gradient(180deg,#dbeafe 0%,#eff6ff 38%,#f0fdf4 100%);
+    padding-top:env(safe-area-inset-top,0)}
+  .main{flex:1;display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:center;width:100%;max-width:1120px;margin:0 auto;padding:28px 20px}
+  /* ---- left: brand ---- */
+  .brand{display:flex;flex-direction:column;gap:18px}
+  .wordmark{display:flex;align-items:center;gap:14px}
+  .mark{width:64px;height:64px;flex:none}
+  .wm{font-size:clamp(40px,6vw,64px);font-weight:900;letter-spacing:-1.5px;line-height:1;color:var(--navy)}
+  .wm b{color:var(--blue);font-weight:900}
+  .tag{font-size:clamp(20px,2.6vw,28px);font-weight:800;font-style:italic;color:var(--navy);margin:0}
+  .pill{align-self:flex-start;background:var(--navy);color:#fff;font-style:italic;font-weight:700;padding:9px 22px;border-radius:999px;font-size:clamp(14px,1.8vw,18px)}
+  .pill i{color:var(--gold);font-style:normal;margin:0 6px}
+  .feats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;background:rgba(255,255,255,.85);border-radius:18px;padding:16px 10px;box-shadow:0 6px 20px rgba(11,35,82,.08)}
+  .feat{text-align:center;font-size:13px;font-weight:700;color:var(--navy);line-height:1.25;padding:0 4px;border-right:1px solid #cbd5e1}
+  .feat:last-child{border-right:0}
+  .ico{width:46px;height:46px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center}
+  .scene{width:100%;height:auto;border-radius:18px;display:block}
+  /* ---- right: login card ---- */
+  .card{background:#fff;border-radius:26px;box-shadow:0 24px 60px rgba(11,35,82,.28);overflow:hidden;width:100%;max-width:440px;justify-self:center}
+  .head{background:linear-gradient(135deg,#0b2352,#1d4ed8);color:#fff;text-align:center;padding:26px 20px 34px;position:relative}
+  .head::after{content:"";position:absolute;left:-5%;right:-5%;bottom:-1px;height:18px;background:#fff;border-radius:50% 50% 0 0/100% 100% 0 0;border-top:5px solid var(--gold)}
+  .head h1{margin:0;font-size:clamp(22px,3.4vw,28px);font-weight:800}
+  .head p{margin:6px 0 0;font-style:italic;font-size:15px;opacity:.95}
+  .body{padding:8px 22px 20px;text-align:center}
+  .slots{display:flex;justify-content:center;gap:8px;margin:14px 0 8px}
+  .slot{flex:1 1 0;min-width:0;max-width:56px;height:58px;border:2px solid #3b82f6;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--navy);background:#f8fbff;position:relative}
+  .slot.filled{background:#eff6ff;border-color:var(--blue2)}
+  .slot.cur::after{content:"";width:2px;height:26px;background:var(--blue);animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  #err{color:#dc2626;font-size:14px;min-height:22px;margin:4px 0 8px;font-weight:600}
+  #err.info{color:#475569;font-weight:500}
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .k{border:0;border-radius:14px;background:linear-gradient(180deg,#2563eb,#1e40af);color:#fff;font-size:26px;font-weight:700;height:58px;cursor:pointer;box-shadow:0 4px 0 #14307f;touch-action:manipulation;transition:transform .05s,box-shadow .05s;font-family:inherit}
+  .k:active{transform:translateY(3px);box-shadow:0 1px 0 #14307f}
+  .k.soft{background:#dbeafe;color:var(--blue2);box-shadow:0 4px 0 #b6cdf5;font-size:17px}
+  .k.soft:active{box-shadow:0 1px 0 #b6cdf5}
+  #go{margin-top:16px;width:100%;height:58px;border:0;border-radius:14px;background:linear-gradient(180deg,#1e40af,#0b2352);color:#fff;font-size:22px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;font-family:inherit;box-shadow:0 6px 16px rgba(11,35,82,.35);touch-action:manipulation}
+  #go:disabled{opacity:.65;cursor:wait}
+  .motto{margin:14px 0 0;font-size:13px;font-style:italic;color:var(--muted)}
+  /* ---- footer ---- */
+  .foot{background:var(--navy);color:#e2e8f0;font-size:13px;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0));border-top:5px solid var(--gold)}
+  .foot .row{max-width:1120px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 26px;justify-content:center;align-items:center}
+  .foot a{color:inherit;text-decoration:none}
+  .copy{width:100%;text-align:center;font-size:11px;color:#94a3b8;margin-top:2px}
+  @media (max-width:860px){
+    .main{grid-template-columns:1fr;gap:20px;padding:18px 14px}
+    .card{order:-1}
+    .brand{align-items:center;text-align:center}
+    .pill{align-self:center}
+    .scene{display:none}
+    .feats{grid-template-columns:repeat(2,1fr);width:100%}
+    .feat:nth-child(2){border-right:0}
+    .feat:nth-child(-n+2){border-bottom:1px solid #cbd5e1;padding-bottom:12px}
+    .feat:nth-child(n+3){padding-top:6px}
+  }
+  @media (max-width:380px){.slot{height:52px}.k{height:54px;font-size:24px}}
+  @media (max-height:700px) and (min-width:861px){.scene{display:none}}
+</style>
+</head>
+<body>
+<div class="main">
+  <section class="brand">
+    <div class="wordmark"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#1e40af"/><rect x="14" y="36" width="9" height="14" rx="2" fill="#fff"/><rect x="27" y="28" width="9" height="22" rx="2" fill="#fff"/><rect x="40" y="19" width="9" height="31" rx="2" fill="#facc15"/><path d="M12 24c8-1 16-5 24-12" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/></svg><div class="wm">Edu<b>Track</b>S</div></div>
+    <p class="tag">School Management System</p>
+    <div class="pill">Monitor<i>&bull;</i>Improve<i>&bull;</i>Succeed</div>
+    <div class="feats"><div class="feat"><div class="ico" style="background:#1d4ed8"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></div>Track<br>Performance</div><div class="feat"><div class="ico" style="background:#16a34a"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>Generate<br>Reports</div><div class="feat"><div class="ico" style="background:#2563eb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></div>Manage<br>Tests</div><div class="feat"><div class="ico" style="background:#f59e0b"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg></div>Support Better<br>Learning</div></div>
+    <svg class="scene" viewBox="0 0 560 190" role="img" aria-label="School building">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#e0f2fe"/></linearGradient></defs>
+  <rect width="560" height="190" fill="url(#sky)"/>
+  <ellipse cx="90" cy="38" rx="42" ry="12" fill="#fff" opacity=".9"/><ellipse cx="130" cy="30" rx="30" ry="10" fill="#fff" opacity=".9"/>
+  <ellipse cx="450" cy="46" rx="48" ry="12" fill="#fff" opacity=".85"/>
+  <rect y="140" width="560" height="50" fill="#4ade80"/><rect y="158" width="560" height="32" fill="#22c55e"/>
+  <rect x="120" y="86" width="330" height="58" fill="#fff"/><rect x="120" y="126" width="330" height="18" fill="#2563eb"/>
+  <polygon points="106,88 140,58 430,58 464,88" fill="#1d4ed8"/>
+  <rect x="250" y="70" width="70" height="74" fill="#f1f5f9"/><polygon points="244,72 285,48 326,72" fill="#1e40af"/>
+  <rect x="262" y="104" width="46" height="40" fill="#1e3a8a"/>
+  <g fill="#1e3a8a"><rect x="146" y="98" width="22" height="22"/><rect x="182" y="98" width="22" height="22"/><rect x="216" y="98" width="22" height="22"/><rect x="332" y="98" width="22" height="22"/><rect x="366" y="98" width="22" height="22"/><rect x="402" y="98" width="22" height="22"/></g>
+  <rect x="58" y="40" width="4" height="108" fill="#94a3b8"/>
+  <polygon points="62,42 104,42 104,56 62,56" fill="#00a1de"/><polygon points="62,56 104,56 104,64 62,64" fill="#fad201"/><polygon points="62,64 104,64 104,74 62,74" fill="#20603d"/>
+  <circle cx="83" cy="53" r="3" fill="#fad201"/>
+  <g fill="#15803d"><circle cx="30" cy="138" r="18"/><circle cx="520" cy="134" r="22"/><circle cx="486" cy="146" r="14"/></g>
+  <g fill="#16a34a"><ellipse cx="150" cy="150" rx="26" ry="8"/><ellipse cx="410" cy="150" rx="30" ry="8"/></g>
+</svg>
+  </section>
+  <main class="card">
+    <div class="head"><h1>Welcome to EduTrackS</h1><p>Login with your PIN</p></div>
+    <div class="body">
+      <input id="pin" type="hidden" value="">
+      <div class="slots" id="slots" aria-label="PIN"></div>
+      <div id="err" role="status" aria-live="polite"></div>
+      <div class="pad" id="pad">
+        <button type="button" class="k" data-k="1">1</button><button type="button" class="k" data-k="2">2</button><button type="button" class="k" data-k="3">3</button>
+        <button type="button" class="k" data-k="4">4</button><button type="button" class="k" data-k="5">5</button><button type="button" class="k" data-k="6">6</button>
+        <button type="button" class="k" data-k="7">7</button><button type="button" class="k" data-k="8">8</button><button type="button" class="k" data-k="9">9</button>
+        <button type="button" class="k" data-k="back" aria-label="Delete last digit"><svg width="30" height="22" viewBox="0 0 30 22" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 1h16a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H10L1 11z"/><line x1="15" y1="7" x2="23" y2="15"/><line x1="23" y1="7" x2="15" y2="15"/></svg></button>
+        <button type="button" class="k" data-k="0">0</button>
+        <button type="button" class="k soft" data-k="clear">Clear</button>
+      </div>
+      <button type="button" id="go"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Login</button>
+      <p class="motto">Education Today, A Brighter Tomorrow</p>
+    </div>
+  </main>
+</div>
+<footer class="foot"><div class="row">
+  <a href="tel:0783524051">&#9742; 0783524051</a>
+  <a href="mailto:jcotinga@gmail.com">&#9993; jcotinga@gmail.com</a>
+  <span>&#127760; www.edutracks.rw</span>
+  <i>EduTrackS &ndash; Empowering Schools</i>
+  <div class="copy">&copy; HABINEZA Jean Claude &middot; EduTrackS. All rights reserved.</div>
+</div></footer>
+<script>
+(function () {
+  try { sessionStorage.removeItem('es_session'); } catch (e) {}
+  var pinEl = document.getElementById('pin'), errEl = document.getElementById('err'), btn = document.getElementById('go');
+  var slotsEl = document.getElementById('slots'), MAXPIN = 6;
+  // On-screen keypad + physical keyboard both fill the (hidden) #pin value; login() below is unchanged.
+  function render() {
+    var len = pinEl.value.length, n = MAXPIN; /* always show all 6 boxes */ slotsEl.innerHTML = '';
+    for (var i = 0; i < n; i++) { var d = document.createElement('div'); d.className = 'slot' + (i < len ? ' filled' : '') + (i === len ? ' cur' : ''); d.textContent = i < len ? '\u25CF' : ''; slotsEl.appendChild(d); }
+  }
+  function press(k) {
+    if (btn.disabled) return;
+    if (errEl.className !== 'info') errEl.textContent = '';
+    if (k === 'back') pinEl.value = pinEl.value.slice(0, -1);
+    else if (k === 'clear') pinEl.value = '';
+    else if (/^[0-9]$/.test(k) && pinEl.value.length < MAXPIN) pinEl.value += k;
+    render();
+  }
+  document.getElementById('pad').addEventListener('click', function (e) { var b = e.target.closest('[data-k]'); if (b) press(b.getAttribute('data-k')); });
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'Enter') { e.preventDefault(); if (!btn.disabled) login(); }
+    else if (e.key === 'Backspace') { e.preventDefault(); press('back'); }
+    else if (e.key === 'Escape') press('clear');
+    else if (/^[0-9]$/.test(e.key)) press(e.key);
+  });
+  render();
+  try { fetch('/api/login?warm=1', { cache: 'no-store' }).catch(function () {}); } catch (e) {}
+  // Same 13 table reads + settings read the app makes on start-up (order matters: the app reads them by position).
+  var PRE_TABLES = ["classes","subjects","teachers","teacher_subjects","class_tutors","teacher_classes","students","settings","marks","commitments","student_groups","student_commitments","class_history"];
+  function prefetchData(token, session) {
+    try {
+      var reqs;
+      if (session && session.role === 'teacher') {
+        var teacherId = Number(session.teacherId), classes = Array.from(new Set((session.classes || []).concat(session.tutorClass == null ? [] : [session.tutorClass]).filter(Boolean).map(String))), subjects = Array.from(new Set((session.subjects || []).filter(Boolean).map(String)));
+        var levels = Array.from(new Set(subjects.map(function (x) { var m = x.toUpperCase().match(/(P[1-6]|S[1-3])\s*$/); return m ? m[1] : ''; }).filter(Boolean)));
+        function scopedColumn(col) {
+          if (classes.length) return { sql: col + ' IN (' + classes.map(function () { return '?'; }).join(',') + ')', args: classes };
+          if (levels.length) return { sql: levels.map(function () { return 'UPPER(' + col + ') LIKE ?'; }).join(' OR '), args: levels.map(function (x) { return x + '%'; }) };
+          return { sql: '0', args: [] };
+        }
+        var c = scopedColumn('class'), subjectClause = subjects.length ? 'subject IN (' + subjects.map(function () { return '?'; }).join(',') + ')' : '0';
+        var settingsSql = "SELECT key, value FROM settings WHERE key IN ('active_academic_year', 'active_term')";
+        var empty = function (t) { return { type: 'execute', stmt: { sql: 'SELECT * FROM ' + t + ' WHERE 0', args: [] } }; };
+        function q(sql, args) { return { type: 'execute', stmt: { sql: sql, args: args || [] } }; }
+        var marksArgs = subjects.concat(c.args);
+        reqs = [
+          q('SELECT * FROM classes WHERE ' + scopedColumn('name').sql, scopedColumn('name').args),
+          subjects.length ? q('SELECT * FROM subjects WHERE name IN (' + subjects.map(function () { return '?'; }).join(',') + ')', subjects) : q('SELECT * FROM subjects WHERE 0'),
+          q('SELECT id, name FROM teachers WHERE id = ?', [teacherId]),
+          q('SELECT * FROM teacher_subjects WHERE teacher_id = ?', [teacherId]),
+          q('SELECT * FROM class_tutors WHERE teacher_id = ?', [teacherId]),
+          q('SELECT * FROM teacher_classes WHERE teacher_id = ?', [teacherId]),
+          q('SELECT * FROM students WHERE ' + c.sql, c.args),
+          q(settingsSql),
+          q("SELECT * FROM marks WHERE term = (SELECT value FROM settings WHERE key = 'active_term') AND " + subjectClause + " AND student_id IN (SELECT id FROM students WHERE " + c.sql + ") AND (academic_year IS NULL OR academic_year = '' OR academic_year = (SELECT value FROM settings WHERE key = 'active_academic_year'))", marksArgs),
+          empty('commitments'), empty('student_groups'), empty('student_commitments'), empty('class_history'),
+          q(settingsSql), { type: 'close' }
+        ];
+      } else {
+        reqs = PRE_TABLES.map(function (t) { return { type: 'execute', stmt: { sql: 'SELECT * FROM ' + t, args: [] } }; });
+        reqs.push({ type: 'execute', stmt: { sql: "SELECT key, value FROM settings WHERE key IN ('active_academic_year', 'active_term')", args: [] } });
+        reqs.push({ type: 'close' });
+      }
+      return fetch('/api/turso', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ requests: reqs }) })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { return j && Array.isArray(j.results) && !j.results.some(function (x) { return x.type === 'error'; }) ? j : null; })
+        .catch(function () { return null; });
+    } catch (e) { return Promise.resolve(null); }
+  }
+  function fail(msg) { errEl.className = ''; errEl.textContent = msg; btn.disabled = false; pinEl.value = ''; render(); }
+  async function login() {
+    var pin = pinEl.value.trim();
+    if (!pin) { fail('Enter your PIN.'); return; }
+    var t0 = Date.now(), preDoneAt = 0;
+    btn.disabled = true; errEl.className = 'info'; errEl.textContent = 'Verifying…';
+    var slow = setTimeout(function () { if (btn.disabled) errEl.textContent = 'Waking up the server… the first login can take a few seconds.'; }, 3000);
+    try {
+      var res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: pin }) });
+      var raw = await res.text(), data = {};
+      try { data = JSON.parse(raw); } catch (e) {}
+      if (!res.ok || !data.ok || !data.token) {
+        clearTimeout(slow);
+        if (res.status === 401) fail((data && data.error) || 'Incorrect PIN. Try again.');
+        else fail(((data && data.error) || 'The server did not answer correctly') + ' [login HTTP ' + res.status + ']');
+        return;
+      }
+      var tLogin = Date.now();
+      errEl.textContent = 'Loading your workspace…';
+      var pre = prefetchData(data.token, data).then(function (v) {
+        preDoneAt = Date.now();
+        // The data request may finish before or after es_timing is first written.
+        try {
+          var timing = JSON.parse(sessionStorage.getItem('es_timing') || 'null');
+          if (timing) { timing.data = preDoneAt; sessionStorage.setItem('es_timing', JSON.stringify(timing)); }
+        } catch (e) {}
+        return v;
+      });   // v111: school data downloads at the same time as the app
+      // Keep the in-flight request across document.open/write so app startup can
+      // reuse it instead of issuing a second, identical database download.
+      window.__ES_PRE_PROMISE = pre;
+      window.__ES_PRE_SCOPE = data.role === 'teacher' ? 'teacher' : 'full';
+      var ar = await fetch('/api/app', { headers: { 'Authorization': 'Bearer ' + data.token }, cache: 'no-store' });
+      if (!ar.ok) { clearTimeout(slow); fail('Signed in, but the app could not be loaded [app HTTP ' + ar.status + ']. Check that api/app.js is deployed.'); return; }
+      var html = await ar.text();
+      try { sessionStorage.setItem('es_timing', JSON.stringify({ t0: t0, login: tLogin, app: Date.now(), data: preDoneAt })); } catch (e) {}
+      sessionStorage.setItem('es_session', JSON.stringify({ token: data.token, role: data.role, teacherId: data.teacherId, name: data.name, subjects: data.subjects || [], tutorClass: data.tutorClass == null ? null : data.tutorClass, classes: data.classes || [] }));
+      clearTimeout(slow);
+      document.open(); document.write(html); document.close();
+    } catch (e) {
+      clearTimeout(slow);
+      fail('Could not reach the server. Check your internet and try again.');
+    }
+  }
+  btn.addEventListener('click', login);
+})();
+</script>
+<script>
+// v109: start downloading the 2 libraries the app needs to OPEN right away (not after 1.5 s),
+// and keep the big Excel/PDF tools for later so they don't slow the login on a weak connection.
+(function(){
+  try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function(){}); }catch(e){}
+  ['sql-wasm.js','sql-wasm.wasm','chart.umd.min.js'].forEach(function(f){ try{ fetch(f,{priority:'high'}).catch(function(){}); }catch(e){} });
+  window.addEventListener('load',function(){
+    setTimeout(function(){ ['xlsx.full.min.js','jspdf.umd.min.js','jspdf.plugin.autotable.min.js'].forEach(function(f){ try{ fetch(f,{priority:'low'}).catch(function(){}); }catch(e){} }); },4000);
+  });
+})();
+</script>
+</body>
+</html>
