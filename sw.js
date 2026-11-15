@@ -19,7 +19,7 @@
 // drop its old cache immediately (rarely needed now, since network-first
 // already avoids stale content — but harmless to bump if you ever want a
 // clean slate).
-const CACHE_NAME = 'edutracks-p6-v25';
+const CACHE_NAME = 'edutracks-p6-v27';
 
 // Big library files that never change: serve from the device cache first (fast start, esp. on phones).
 const STATIC_LIBS = ['/xlsx.full.min.js','/jspdf.umd.min.js','/jspdf.plugin.autotable.min.js','/chart.umd.min.js','/sql-wasm.js','/sql-wasm.wasm'];
